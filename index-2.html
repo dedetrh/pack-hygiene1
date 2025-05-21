@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pack Hygiène avec Photo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; }
+        label { display: block; margin-top: 10px; }
+        input, button { width: 100%; padding: 10px; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: middle; }
+        th { background: #eee; }
+        img { max-width: 80px; max-height: 80px; border-radius: 5px; }
+        .hidden { display: none; }
+        button.delete-btn { background-color: #ff6666; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+        button.delete-btn:hover { background-color: #ff3333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="login-screen">
+            <h1>Connexion</h1>
+            <input type="password" id="access-code" placeholder="Entrez le code d'accès" />
+            <button onclick="checkCode()">Entrer</button>
+        </div>
+
+        <div id="app-screen" class="hidden">
+            <h1>Pack Hygiène</h1>
+            <label>Nom du produit</label>
+            <input type="text" id="product-name" />
+
+            <label>Date de péremption</label>
+            <input type="date" id="expiry-date" />
+
+            <label>Numéro de lot</label>
+            <input type="text" id="lot-number" />
+
+            <label>Étiquette (photo)</label>
+            <input type="file" accept="image/*" capture="environment" id="photo" />
+
+            <button onclick="addProduct()">Ajouter</button>
+
+            <h2>Historique</h2>
+            <table id="product-table">
+                <thead>
+                    <tr>
+                        <th>Produit</th>
+                        <th>DLUO</th>
+                        <th>Lot</th>
+                        <th>Étiquette</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const CORRECT_CODE = "1234";
+
+        function checkCode() {
+            const code = document.getElementById('access-code').value;
+            if (code === CORRECT_CODE) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                loadProducts();
+            } else {
+                alert("Code incorrect !");
+            }
+        }
+
+        function addProduct() {
+            const name = document.getElementById('product-name').value.trim();
+            const date = document.getElementById('expiry-date').value;
+            const lot = document.getElementById('lot-number').value.trim();
+            const photoInput = document.getElementById('photo');
+            if (!name || !date || !lot) {
+                alert("Merci de remplir tous les champs.");
+                return;
+            }
+
+            if (photoInput.files.length > 0) {
+                const file = photoInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const photoData = event.target.result;
+                    saveProduct({name, date, lot, photo: photoData});
+                };
+                reader.readAsDataURL(file);
+            } else {
+                saveProduct({name, date, lot, photo: null});
+            }
+        }
+
+        function saveProduct(product) {
+            let products = JSON.parse(localStorage.getItem("products") || "[]");
+            products.push(product);
+            localStorage.setItem("products", JSON.stringify(products));
+            loadProducts();
+
+            document.getElementById('product-name').value = "";
+            document.getElementById('expiry-date').value = "";
+            document.getElementById('lot-number').value = "";
+            document.getElementById('photo').value = "";
+        }
+
+        function loadProducts() {
+            const products = JSON.parse(localStorage.getItem("products") || "[]");
+            const tbody = document.querySelector("#product-table tbody");
+            tbody.innerHTML = "";
+            products.forEach((product, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${product.name}</td>
+                    <td>${product.date}</td>
+                    <td>${product.lot}</td>
+                    <td>${product.photo ? '<img src="' + product.photo + '" alt="Étiquette" />' : ''}</td>
+                    <td><button class="delete-btn" onclick="deleteProduct(${index})">Supprimer</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function deleteProduct(index) {
+            let products = JSON.parse(localStorage.getItem("products") || "[]");
+            products.splice(index, 1);
+            localStorage.setItem("products", JSON.stringify(products));
+            loadProducts();
+        }
+    </script>
+</body>
+</html>
